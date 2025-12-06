@@ -1,0 +1,60 @@
+from flask import Flask, request, jsonify
+from datetime import datetime
+import csv
+import os
+
+app = Flask(__name__)
+
+CSV_FILE = "posture_data_3fsr_6axis.csv"
+
+# Create CSV with header if not exists
+if not os.path.isfile(CSV_FILE):
+    with open(CSV_FILE, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "timestamp",
+            "fsr_back", "fsr_left", "fsr_right",
+            "ax", "ay", "az",
+            "gx", "gy", "gz",
+            "pitch", "roll",
+            "posture"
+        ])
+
+@app.route("/sensor_data", methods=["POST"])
+def sensor_data():
+    data = request.get_json() or {}
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+    # Console log (for you to see live on Pi)
+    print(
+        f"[{ts}] "
+        f"FSR Back:{data.get('fsr_back')}  "
+        f"L:{data.get('fsr_left')}  R:{data.get('fsr_right')} | "
+        f"Pitch:{data.get('pitch')}  Roll:{data.get('roll')} | "
+        f"Posture:{data.get('posture')}"
+    )
+
+    # Append full row to CSV
+    with open(CSV_FILE, "a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            ts,
+            data.get("fsr_back"),
+            data.get("fsr_left"),
+            data.get("fsr_right"),
+            data.get("ax"),
+            data.get("ay"),
+            data.get("az"),
+            data.get("gx"),
+            data.get("gy"),
+            data.get("gz"),
+            data.get("pitch"),
+            data.get("roll"),
+            data.get("posture"),
+        ])
+
+    return jsonify({"status": "ok"})
+
+if __name__ == "__main__":
+    print("Flask posture server running on port 5000...")
+    app.run(host="0.0.0.0", port=5000)
